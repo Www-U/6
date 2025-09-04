@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>个人社保计算软件</title>
+    <!-- 引入Bootstrap 5样式 -->
+    <link rel="stylesheet" href="https://cdn.staticfile.net/twitter-bootstrap/5.1.1/css/bootstrap.min.css">
+    <!-- 引入Bootstrap 5核心JS -->
+    <script src="https://cdn.staticfile.net/twitter-bootstrap/5.1.1/js/bootstrap.bundle.min.js"></script>
+    <!-- 适配移动端 -->
+    <meta name="viewport" content="width=device-width,initial-scale=1"/>
+    <style>
+        /* 可选：优化表格单元格内边距，提升移动端显示效果 */
+        .table td {
+            padding: 0.8rem;
+            vertical-align: middle;
+        }
+        /* 输入框聚焦样式 */
+        #salary:focus {
+            border-color: #dc3545;
+            box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
+        }
+    </style>
+</head>
+<body>
+    <div class="container text-center mt-5">
+        <h2 class="mb-4">个人社保计算软件-中北大学-段国钰</h2>
+        <table class="table table-bordered text-center table-hover" style="max-width: 800px; margin: 0 auto;">
+            <!-- 工资输入行 -->
+            <tr>
+                <td class="fw-bold">工资（元）</td>
+                <td colspan="3">
+                    <input type="number" class="form-control" id="salary" placeholder="请输入月工资（如：8000）" min="0" step="1">
+                </td>
+                <td>
+                    <!-- 绑定计算按钮点击事件 -->
+                    <button class="btn btn-danger" onclick="calculateSocialSecurity()">计算</button>
+                </td>
+            </tr>
+            <!-- 表头 -->
+            <tr class="bg-primary text-white">
+                <td class="fw-bold">险种</td>
+                <td class="fw-bold">个人缴费比例</td>
+                <td class="fw-bold">个人缴费金额（元）</td>
+                <td class="fw-bold">公司缴费比例</td>
+                <td class="fw-bold">公司缴费金额（元）</td>
+            </tr>
+            <!-- 养老保险 -->
+            <tr>
+                <td>养老</td>
+                <td>8%</td>
+                <td id="personal-pension"></td>
+                <td>20%</td>
+                <td id="company-pension"></td>
+            </tr>
+            <!-- 医疗保险 -->
+            <tr>
+                <td>医保</td>
+                <td>2%</td>
+                <td id="personal-medical"></td>
+                <td>6%</td>
+                <td id="company-medical"></td>
+            </tr>
+            <!-- 失业保险 -->
+            <tr>
+                <td>失业</td>
+                <td>0.5%</td>
+                <td id="personal-unemployment"></td>
+                <td>1.5%</td>
+                <td id="company-unemployment"></td>
+            </tr>
+            <!-- 工伤保险（个人不缴费） -->
+            <tr>
+                <td>工伤</td>
+                <td>-</td>
+                <td>0</td>
+                <td>0.5%</td>
+                <td id="company-injury"></td>
+            </tr>
+            <!-- 生育保险（个人不缴费） -->
+            <tr>
+                <td>生育</td>
+                <td>-</td>
+                <td>0</td>
+                <td>0.8%</td>
+                <td id="company-maternity"></td>
+            </tr>
+            <!-- 住房公积金 -->
+            <tr>
+                <td>公积金</td>
+                <td>12%</td>
+                <td id="personal-fund"></td>
+                <td>12%</td>
+                <td id="company-fund"></td>
+            </tr>
+            <!-- 合计行 -->
+            <tr class="bg-light">
+                <td class="fw-bold">合计</td>
+                <td class="fw-bold">个人合计</td>
+                <td id="personal-total" class="fw-bold text-danger"></td>
+                <td class="fw-bold">公司合计</td>
+                <td id="company-total" class="fw-bold text-primary"></td>
+            </tr>
+            <!-- 总额行（个人+公司） -->
+            <tr class="bg-secondary text-white">
+                <td class="fw-bold">总额</td>
+                <td colspan="4" id="total-all" class="fw-bold"></td>
+            </tr>
+        </table>
+    </div>
+
+    <script>
+        // 社保计算核心函数
+        function calculateSocialSecurity() {
+            // 1. 获取输入的工资（处理空值/非数值情况）
+            const salaryInput = document.getElementById('salary');
+            const salary = parseFloat(salaryInput.value.trim());
+            
+            // 输入验证：若为空或非正数，提示用户
+            if (isNaN(salary) || salary <= 0) {
+                alert('请输入有效的月工资（正数）！');
+                salaryInput.focus(); // 让输入框获取焦点，方便用户重新输入
+                return;
+            }
+
+            // 2. 定义各险种缴费比例（与表格一致）
+            const ratios = {
+                pension: { personal: 0.08, company: 0.20 },    // 养老
+                medical: { personal: 0.02, company: 0.06 },    // 医保
+                unemployment: { personal: 0.005, company: 0.015 }, // 失业
+                injury: { personal: 0, company: 0.005 },      // 工伤（个人0）
+                maternity: { personal: 0, company: 0.008 },    // 生育（个人0）
+                fund: { personal: 0.12, company: 0.12 }       // 公积金
+            };
+
+            // 3. 计算各险种缴费金额（保留2位小数，符合金额格式）
+            const personalPension = (salary * ratios.pension.personal).toFixed(2);
+            const companyPension = (salary * ratios.pension.company).toFixed(2);
+
+            const personalMedical = (salary * ratios.medical.personal).toFixed(2);
+            const companyMedical = (salary * ratios.medical.company).toFixed(2);
+
+            const personalUnemployment = (salary * ratios.unemployment.personal).toFixed(2);
+            const companyUnemployment = (salary * ratios.unemployment.company).toFixed(2);
+
+            const companyInjury = (salary * ratios.injury.company).toFixed(2);
+
+            const companyMaternity = (salary * ratios.maternity.company).toFixed(2);
+
+            const personalFund = (salary * ratios.fund.personal).toFixed(2);
+            const companyFund = (salary * ratios.fund.company).toFixed(2);
+
+            // 4. 计算合计金额（个人合计、公司合计、总额）
+            const personalTotal = (
+                parseFloat(personalPension) +
+                parseFloat(personalMedical) +
+                parseFloat(personalUnemployment) +
+                parseFloat(personalFund)
+            ).toFixed(2);
+
+            const companyTotal = (
+                parseFloat(companyPension) +
+                parseFloat(companyMedical) +
+                parseFloat(companyUnemployment) +
+                parseFloat(companyInjury) +
+                parseFloat(companyMaternity) +
+                parseFloat(companyFund)
+            ).toFixed(2);
+
+            const totalAll = (parseFloat(personalTotal) + parseFloat(companyTotal)).toFixed(2);
+
+            // 5. 将计算结果填充到表格对应位置
+            document.getElementById('personal-pension').textContent = personalPension;
+            document.getElementById('company-pension').textContent = companyPension;
+
+            document.getElementById('personal-medical').textContent = personalMedical;
+            document.getElementById('company-medical').textContent = companyMedical;
+
+            document.getElementById('personal-unemployment').textContent = personalUnemployment;
+            document.getElementById('company-unemployment').textContent = companyUnemployment;
+
+            document.getElementById('company-injury').textContent = companyInjury;
+            document.getElementById('company-maternity').textContent = companyMaternity;
+
+            document.getElementById('personal-fund').textContent = personalFund;
+            document.getElementById('company-fund').textContent = companyFund;
+
+            document.getElementById('personal-total').textContent = personalTotal;
+            document.getElementById('company-total').textContent = companyTotal;
+
+            document.getElementById('total-all').textContent = `个人+公司总缴费：${totalAll} 元`;
+        }
+
+        // 可选：添加“回车键触发计算”功能（提升用户体验）
+        document.getElementById('salary').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                calculateSocialSecurity();
+            }
+        });
+    </script>
+</body>
+</html>
